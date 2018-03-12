@@ -1,6 +1,7 @@
 # Imports
 import pygame
 import intersects
+import xbox360_controller
 
 # Initialize game engine
 pygame.init()
@@ -19,6 +20,8 @@ pygame.display.set_caption(TITLE)
 clock = pygame.time.Clock()
 refresh_rate = 60
 
+#controller object
+my_controller = xbox360_controller.Controller(0)
 # Colors
 RED = (255, 0, 0)
 WHITE = (255, 255, 255)
@@ -29,9 +32,12 @@ BLUE = (0,0,205)
 
 #sounds
 coin = pygame.mixer.Sound('sounds/coin.ogg')
+track = 'sounds/soundtrack.ogg'
+smooth = 'sounds/smooth.ogg'
 
 #pics
 space = pygame.image.load('pictures/space.png')
+black_space = pygame.image.load('pictures/black_space.jpg')
 potion = pygame.image.load('pictures/potion.png')
 shield = pygame.image.load('pictures/shield.png')
 
@@ -61,7 +67,7 @@ icon1 = pygame.image.load('pictures/icon1.png')
 #player1
 player1 =  [200, 150,25,25]
 health1 = [5,5]
-shield1 = [5,5]
+shield1 = [3,3]
 char1 = 1
 arrow_pos1 = 250
 invins1 = False
@@ -75,7 +81,7 @@ p1_fired = False
 #player2
 player2 = [250, 150, 25, 25]
 health2 = [5,5]
-shield2 = [5,5]
+shield2 = [3,3]
 char2 = 1
 arrow_pos2 = 250
 invins2 = False
@@ -122,22 +128,22 @@ done = False
 '''functions for the game'''
 def title_screen():
     font = pygame.font.Font(None, 45)
-    
+    screen.blit(black_space,[0,0])
     s1 = font.render("Welcome to Space Wars",1,GREEN)
     s2 = font.render("Player1: Arrow keys to move, 'ctr' to shoot",1,GREEN)
     s3 = font.render("Player2: 'w','a','s','d' to move, 'e' to shoot",1,GREEN)
-    s4 = font.render("Press 'enter' when ready!",1,GREEN)
+    s4 = font.render("Press 'back' when ready!",1,GREEN)
     screen.blit(s1,[(WIDTH//2) - ((s1.get_width())//2),100])
     screen.blit(s2,[(WIDTH//2) - ((s2.get_width())//2),300])
     screen.blit(s3,[(WIDTH//2) - ((s3.get_width())//2),400])
     screen.blit(s4,[(WIDTH//2) - ((s4.get_width())//2),500])
 
 def char_selection_screen():
-    pygame.draw.rect(screen, BLACK, [0,0,WIDTH,HEIGHT])
+    screen.blit(black_space, [0,0]) 
     
     font = pygame.font.Font(None, 45)
     s1 = font.render("Choose Your Player!",1,GREEN)
-    s2 = font.render("Press the space bar to continue!",1,GREEN)
+    s2 = font.render("Press 'start' to continue!",1,GREEN)
     screen.blit(s1,[(WIDTH//2) - ((s1.get_width())//2),100])
     screen.blit(s2,[(WIDTH//2) - ((s2.get_width())//2),500])
     
@@ -154,9 +160,13 @@ def char_lockin(arrow_pos):
         
         return 2
 
+def play_song(song):
+    pygame.mixer.music.load(song)
+    pygame.mixer.music.play(-1)
+
 def draw_arrow(x,y,player):
     if player == 1:
-        screen.blit(icon1,[x,y])
+        pygame.draw.rect(screen, RED, [x,y,5,15])
     else:
         pygame.draw.rect(screen, GREEN, [x,y,5,15])
     
@@ -169,7 +179,7 @@ def end_screen(health1):
     
     s2 = font.render(winner + " wins!",1,GREEN)
     screen.blit(s2,[(WIDTH//2) - ((s2.get_width())//2),250])
-    s1 = font.render("Press Enter to play again",1,GREEN)
+    s1 = font.render("Press 'start' to play again",1,GREEN)
     screen.blit(s1,[(WIDTH//2) - ((s1.get_width())//2),300])
         
 def shoot(player,bullets,direc,ammo):
@@ -316,6 +326,8 @@ PLAYING = 3
 END = 4
 
 setup(health1,health2)
+play_song(smooth)
+
 while not done:
     # Event processing (React to key presses, mouse clicks, etc.)
     for event in pygame.event.get():
@@ -324,23 +336,19 @@ while not done:
 
         #fires lazer
         elif event.type == pygame.KEYDOWN:
-
             if stage == PLAYING:
-                if event.key == pygame.K_RCTRL:
-                    p1_fired = True
                 if event.key == pygame.K_e:
                     p2_fired = True
 
                 
     pressed = pygame.key.get_pressed()
+    xbox = my_controller.get_buttons()
     
-    up1 = pressed[pygame.K_UP]
-    down1 = pressed[pygame.K_DOWN]
-    left1 = pressed[pygame.K_LEFT]
-    right1 = pressed[pygame.K_RIGHT]
-
-    space_bar = pressed[pygame.K_SPACE]
-    enter = pressed[pygame.K_RETURN]
+    if xbox[xbox360_controller.A]:
+        p1_fired = True
+    lt_x, lt_y = my_controller.get_left_stick()
+    start = xbox[xbox360_controller.START]
+    select = xbox[xbox360_controller.BACK]
 
     up2 = pressed[pygame.K_w]
     down2 = pressed[pygame.K_s]
@@ -360,19 +368,19 @@ while not done:
             p2_fired = False
         
         #player 1 move
-        if left1:
+        if lt_x < 0:
             vel1[0] = -player_speed
             dir1 = 2
-        elif right1:
+        elif lt_x > 0:
             vel1[0] = player_speed
             dir1 = 4
         else:
             vel1[0] = 0
 
-        if up1:
+        if lt_y < 0:
             vel1[1] = -player_speed
             dir1 = 1
-        elif down1:
+        elif lt_y > 0:
             vel1[1] = player_speed
             dir1 = 3
         else:
@@ -557,10 +565,10 @@ while not done:
         draw_arrow(arrow_pos1,320,1)
         draw_arrow(arrow_pos2,345,2)
 
-        if right1:
+        if lt_x > 0:
             if arrow_pos1 < 550:
                 arrow_pos1 += 300
-        if left1:
+        if lt_x < 0:
             if arrow_pos1 > 250:
                 arrow_pos1 -= 300
         if right2:
@@ -573,13 +581,13 @@ while not done:
         char1 = char_lockin(arrow_pos1)
         char2 = char_lockin(arrow_pos2)
                 
-        if space_bar:
+        if start:
             stage = START
             
     '''intro stage'''
     if stage == START:
         title_screen()
-        if enter:
+        if select:
             stage = COUNT_DOWN
 
     '''count down stage'''
@@ -602,7 +610,7 @@ while not done:
     '''ending stage'''
     if stage == END:
         end_screen(health1)
-        if enter:
+        if start:
             setup(health1,health2)
     
     # Update screen (Actually draw the picture in the window.)
