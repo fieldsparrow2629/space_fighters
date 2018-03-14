@@ -3,9 +3,9 @@ import pygame
 import intersects
 import xbox360_controller
 
+
 # Initialize game engine
 pygame.init()
-
 
 # Window
 WIDTH = 800
@@ -15,13 +15,14 @@ TITLE = "Maze"
 screen = pygame.display.set_mode(SIZE)
 pygame.display.set_caption(TITLE)
 
-
 # Timer
 clock = pygame.time.Clock()
 refresh_rate = 60
 
-#controller object
-my_controller = xbox360_controller.Controller(0)
+#controller objects
+my_controller1 = xbox360_controller.Controller(0)
+my_controller2 = xbox360_controller.Controller(1)
+
 # Colors
 RED = (255, 0, 0)
 WHITE = (255, 255, 255)
@@ -34,6 +35,7 @@ BLUE = (0,0,205)
 coin = pygame.mixer.Sound('sounds/coin.ogg')
 track = 'sounds/soundtrack.ogg'
 smooth = 'sounds/smooth.ogg'
+lazer = pygame.mixer.Sound('sounds/lazer2.ogg')
 
 #pics
 space = pygame.image.load('pictures/space.png')
@@ -45,21 +47,18 @@ ship_1 = pygame.image.load('pictures/craft1.png')
 ship_2 = pygame.transform.rotate(ship_1, 90)
 ship_3 = pygame.transform.rotate(ship_2, 90)
 ship_4 = pygame.transform.rotate(ship_3, 90)
-
 frames1 = [ship_1, ship_2, ship_3, ship_4]
 
 craft_1 = pygame.image.load('pictures/ship1.png')
 craft_2 = pygame.transform.rotate(craft_1, 90)
 craft_3 = pygame.transform.rotate(craft_2, 90)
 craft_4 = pygame.transform.rotate(craft_3, 90)
-
 frames2 = [craft_1,craft_2, craft_3, craft_4]
 
 one = pygame.image.load('pictures/one.png')
 two = pygame.image.load('pictures/two.png')
 three = pygame.image.load('pictures/three.png')
 fight = pygame.image.load('pictures/fight.png')
-
 count = [one,two,three]
 
 icon1 = pygame.image.load('pictures/icon1.png')
@@ -67,9 +66,10 @@ icon1 = pygame.image.load('pictures/icon1.png')
 #player1
 player1 =  [200, 150,25,25]
 health1 = [5,5]
-shield1 = [3,3]
+shield1 = [3,3]   
 char1 = 1
-arrow_pos1 = 250
+lockin1 = False
+arrow_pos1 = [250,320]
 invins1 = False
 timer1 = 90
 vel1 = [0, 0]
@@ -83,17 +83,18 @@ player2 = [250, 150, 25, 25]
 health2 = [5,5]
 shield2 = [3,3]
 char2 = 1
-arrow_pos2 = 250
+lockin2 = False
+arrow_pos2 = [265,320]
 invins2 = False
 timer2 = 90
 vel2 = [0, 0]
 dir2 = 1
 bullets2 = []
-ammo2 = 10
+ammo2 = 1
 p2_fired = False
 
 player_speed = 5
-
+sensitivity = .3
 # make walls
 wall1 =  [0, 0, 25, 600]
 wall2 =  [0, 0, 800, 25]
@@ -130,20 +131,18 @@ def title_screen():
     font = pygame.font.Font(None, 45)
     screen.blit(black_space,[0,0])
     s1 = font.render("Welcome to Space Wars",1,GREEN)
-    s2 = font.render("Player1: Arrow keys to move, 'ctr' to shoot",1,GREEN)
-    s3 = font.render("Player2: 'w','a','s','d' to move, 'e' to shoot",1,GREEN)
-    s4 = font.render("Press 'back' when ready!",1,GREEN)
+    s2 = font.render("Left joystick to move, right joystick to shoot.",1,GREEN)
+    s3 = font.render("Press 'start' when ready!",1,GREEN)
     screen.blit(s1,[(WIDTH//2) - ((s1.get_width())//2),100])
     screen.blit(s2,[(WIDTH//2) - ((s2.get_width())//2),300])
-    screen.blit(s3,[(WIDTH//2) - ((s3.get_width())//2),400])
-    screen.blit(s4,[(WIDTH//2) - ((s4.get_width())//2),500])
+    screen.blit(s3,[(WIDTH//2) - ((s3.get_width())//2),500])
 
 def char_selection_screen():
     screen.blit(black_space, [0,0]) 
     
     font = pygame.font.Font(None, 45)
     s1 = font.render("Choose Your Player!",1,GREEN)
-    s2 = font.render("Press 'start' to continue!",1,GREEN)
+    s2 = font.render("Press up to choose character!",1,GREEN)
     screen.blit(s1,[(WIDTH//2) - ((s1.get_width())//2),100])
     screen.blit(s2,[(WIDTH//2) - ((s2.get_width())//2),500])
     
@@ -154,16 +153,23 @@ def char_selection_screen():
     screen.blit(ship_sprite2, [500,200])
 
 def char_lockin(arrow_pos):
-    if arrow_pos == 250:
+    if arrow_pos[0] < 550:
         return 1
-    if arrow_pos == 550:
-        
+    if arrow_pos[0] > 250:
         return 2
 
 def play_song(song):
     pygame.mixer.music.load(song)
     pygame.mixer.music.play(-1)
-
+   
+def move_arrow(lt_x,lockin,arrow_pos):
+        if lt_x > 0 and not lockin:
+            if arrow_pos[0] < 270:
+                arrow_pos[0] += 300
+        if lt_x < 0 and not lockin:
+            if arrow_pos[0] > 270:
+                arrow_pos[0] -= 300
+            
 def draw_arrow(x,y,player):
     if player == 1:
         pygame.draw.rect(screen, RED, [x,y,5,15])
@@ -182,28 +188,37 @@ def end_screen(health1):
     s1 = font.render("Press 'start' to play again",1,GREEN)
     screen.blit(s1,[(WIDTH//2) - ((s1.get_width())//2),300])
         
-def shoot(player,bullets,direc,ammo):
+def shoot(player,direc,bullets,rt_x,rt_y,ammo):
     if len(bullets) < ammo: 
-        b_vel = [0,-24]
-        shape = [5,15]
         x = player[0]
         y = player[1]
-        
-        if direc == 2:
-            b_vel = [-24,0]
-            shape = [15,5]
-            y += 17
-        elif direc == 3:
-            b_vel = [0,24]
-            x += 17
-        elif direc == 4:
+
+        if rt_x > sensitivity:
             b_vel = [24,0]
             shape = [15,5]
             y += 17
-        else:
+            bullets.append( [x, y, shape[0], shape[1], b_vel] )
+            direc = 4
+        elif rt_x < -sensitivity:
+            b_vel = [-24,0]
+            shape = [15,5]
+            y += 17
+            bullets.append( [x, y, shape[0], shape[1], b_vel] )
+            direc = 2
+        elif rt_y > sensitivity:
+            b_vel = [0,24]
+            shape = [5,15]
             x += 17
-               
-        bullets.append( [x, y, shape[0], shape[1], b_vel] )
+            bullets.append( [x, y, shape[0], shape[1], b_vel] )
+            direc = 3
+        elif rt_y < -sensitivity:
+            b_vel = [0,-24]
+            x += 17
+            shape = [5,15]
+            bullets.append( [x, y, shape[0], shape[1], b_vel] )
+            direc = 1
+                     
+        
 
 def draw_bullet(x,y,l,w):
     pygame.draw.rect(screen, GREEN, [x,y,l,w])
@@ -301,11 +316,13 @@ def heal(health):
     if health[0] > health[1]:
         health[0] = health[1]
 
-def setup(health1,health2):
+def setup(health1,health2,lockin1,lockin2,arrowpos1,arrowpos2):
     global stage,tick
     stage = CHAR_SELECT
+    lockin1,lockin2 = False,False
     tick = 0
-    
+
+    arrow_pos1[1],arrow_pos2[1] = 320,320
     health1[0] = health1[1]
     health2[0] = health2[1]
 
@@ -325,84 +342,66 @@ COUNT_DOWN = 2
 PLAYING = 3
 END = 4
 
-setup(health1,health2)
-play_song(smooth)
+setup(health1,health2,lockin1,lockin2,arrow_pos1,arrow_pos2)
+play_song(track)
 
 while not done:
     # Event processing (React to key presses, mouse clicks, etc.)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             done = True
-
-        #fires lazer
-        elif event.type == pygame.KEYDOWN:
-            if stage == PLAYING:
-                if event.key == pygame.K_e:
-                    p2_fired = True
-
-                
-    pressed = pygame.key.get_pressed()
-    xbox = my_controller.get_buttons()
+               
+    pressed1 = my_controller1.get_buttons()
+    pressed2 = my_controller2.get_buttons()
     
-    if xbox[xbox360_controller.A]:
-        p1_fired = True
-    lt_x, lt_y = my_controller.get_left_stick()
-    start = xbox[xbox360_controller.START]
-    select = xbox[xbox360_controller.BACK]
+    a1 = pressed1[xbox360_controller.A]
+    lt_x1, lt_y1 = my_controller1.get_left_stick()
+    rt_x1, rt_y1 = my_controller1.get_right_stick()
+    start1 = pressed1[xbox360_controller.START]
+    select1 = pressed1[xbox360_controller.BACK]
 
-    up2 = pressed[pygame.K_w]
-    down2 = pressed[pygame.K_s]
-    left2 = pressed[pygame.K_a]
-    right2 = pressed[pygame.K_d]
-    
+    a2 = pressed2[xbox360_controller.A]
+    lt_x2, lt_y2 = my_controller2.get_left_stick()
+    rt_x2, rt_y2 = my_controller2.get_right_stick()
+    start2 = pressed2[xbox360_controller.START]
+    select2 = pressed2[xbox360_controller.BACK]
 
     '''controls while game is playing'''        
     if stage == PLAYING:
         #shoots bullet
-        if p1_fired:
-            shoot(player1,bullets1,dir1,ammo1)
-            p1_fired = False
-
-        if p2_fired:
-            shoot(player2,bullets2,dir2,ammo2)
-            p2_fired = False
+        if rt_x1 != 0 or rt_y1 != 0:
+            shoot(player1,dir1,bullets1,rt_x1,rt_y1,ammo1)
+        if rt_x2 != 0 or rt_y2 != 0:
+            shoot(player2,dir2,bullets2,rt_x2,rt_y2,ammo2)
         
         #player 1 move
-        if lt_x < 0:
+        if lt_x1 < -sensitivity :
             vel1[0] = -player_speed
-            dir1 = 2
-        elif lt_x > 0:
+        elif lt_x1 > sensitivity :
             vel1[0] = player_speed
-            dir1 = 4
         else:
             vel1[0] = 0
 
-        if lt_y < 0:
+        if lt_y1 < -sensitivity :
             vel1[1] = -player_speed
-            dir1 = 1
-        elif lt_y > 0:
+        elif lt_y1 > sensitivity :
             vel1[1] = player_speed
-            dir1 = 3
         else:
             vel1[1] = 0
         
         
         #player2 move
-        if left2:
+        if lt_x2 < -sensitivity :
             vel2[0] = -player_speed
-            dir2 = 2
-        elif right2:
+        elif lt_x2 > sensitivity :
             vel2[0] = player_speed
-            dir2 = 4
         else:
             vel2[0] = 0
         
-        if up2:
+        if lt_y2 < -sensitivity :
             vel2[1] = -player_speed
-            dir2 = 1
-        elif down2:
+        elif lt_y2 > sensitivity :
             vel2[1] = player_speed
-            dir2 = 3
         else:
             vel2[1] = 0
         
@@ -562,32 +561,36 @@ while not done:
     '''character selection screen'''
     if stage == CHAR_SELECT:
         char_selection_screen()
-        draw_arrow(arrow_pos1,320,1)
-        draw_arrow(arrow_pos2,345,2)
+        
+        draw_arrow(arrow_pos1[0],arrow_pos1[1],1)
+        draw_arrow(arrow_pos2[0],arrow_pos2[1],2)
+        
+        move_arrow(lt_x1,lockin1,arrow_pos1)
+        if lt_y1 < -sensitivity :
+            arrow_pos1[1] = 300
+            lockin1 = True       
+        if lt_y1 > sensitivity :
+            arrow_pos1[1] = 320
+            lockin1 = False
 
-        if lt_x > 0:
-            if arrow_pos1 < 550:
-                arrow_pos1 += 300
-        if lt_x < 0:
-            if arrow_pos1 > 250:
-                arrow_pos1 -= 300
-        if right2:
-            if arrow_pos2 < 550:
-                arrow_pos2 += 300
-        if left2:
-            if arrow_pos2 > 250:
-                arrow_pos2 -= 300
-
+        move_arrow(lt_x2,lockin2,arrow_pos2)
+        if lt_y2 < -sensitivity :
+            arrow_pos2[1] = 300
+            lockin2 = True       
+        if lt_y2 > sensitivity :
+            arrow_pos2[1] = 320
+            lockin2 = False
+            
         char1 = char_lockin(arrow_pos1)
         char2 = char_lockin(arrow_pos2)
                 
-        if start:
+        if lockin1 and lockin2:
             stage = START
             
     '''intro stage'''
     if stage == START:
         title_screen()
-        if select:
+        if start1 or start2:
             stage = COUNT_DOWN
 
     '''count down stage'''
@@ -610,8 +613,8 @@ while not done:
     '''ending stage'''
     if stage == END:
         end_screen(health1)
-        if start:
-            setup(health1,health2)
+        if start1 or start2:
+            setup(health1,health2,lockin1,lockin2,arrow_pos1,arrow_pos2)
     
     # Update screen (Actually draw the picture in the window.)
     pygame.display.flip()
