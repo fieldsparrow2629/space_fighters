@@ -24,6 +24,8 @@ my_controller1 = xbox360_controller.Controller(0)
 my_controller2 = xbox360_controller.Controller(1)
 
 # Colors
+TIEL = (19, 239, 183)
+MAROON = (198, 3, 3) 
 RED = (255, 0, 0)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -36,6 +38,12 @@ coin = pygame.mixer.Sound('sounds/coin.ogg')
 track = 'sounds/soundtrack.ogg'
 smooth = 'sounds/smooth.ogg'
 lazer = pygame.mixer.Sound('sounds/lazer2.ogg')
+
+#fonts
+font0 = font1 = pygame.font.Font("fonts/space_age.ttf",15)
+font1 = pygame.font.Font("fonts/space_age.ttf",25)
+font2 = pygame.font.Font("fonts/space_age.ttf",40)
+font3 = pygame.font.Font("fonts/space_age.ttf",50)
 
 #pics
 space = pygame.image.load('pictures/space.png')
@@ -75,7 +83,7 @@ timer1 = 90
 vel1 = [0, 0]
 dir1 = 1
 bullets1 = []
-ammo1 = 1
+fire_rate1 = 1
 p1_fired = False
 
 #player2
@@ -90,7 +98,7 @@ timer2 = 90
 vel2 = [0, 0]
 dir2 = 1
 bullets2 = []
-ammo2 = 1
+fire_rate2 = 1
 p2_fired = False
 
 player_speed = 5
@@ -128,21 +136,21 @@ done = False
 
 '''functions for the game'''
 def title_screen():
-    font = pygame.font.Font(None, 45)
     screen.blit(black_space,[0,0])
-    s1 = font.render("Welcome to Space Wars",1,GREEN)
-    s2 = font.render("Left joystick to move, right joystick to shoot.",1,GREEN)
-    s3 = font.render("Press 'start' when ready!",1,GREEN)
+    s1 = font2.render("Welcome to Space Wars",1,TIEL)
+    s2 = font1.render("Left joystick to move",1,TIEL)
+    s3 = font1.render("Right joystick to shoot",1,TIEL)
+    s4 = font1.render("Press 'start' when ready!",1,TIEL)
     screen.blit(s1,[(WIDTH//2) - ((s1.get_width())//2),100])
     screen.blit(s2,[(WIDTH//2) - ((s2.get_width())//2),300])
-    screen.blit(s3,[(WIDTH//2) - ((s3.get_width())//2),500])
+    screen.blit(s3,[(WIDTH//2) - ((s3.get_width())//2),400])
+    screen.blit(s4,[(WIDTH//2) - ((s4.get_width())//2),500])
 
 def char_selection_screen():
     screen.blit(black_space, [0,0]) 
     
-    font = pygame.font.Font(None, 45)
-    s1 = font.render("Choose Your Player!",1,GREEN)
-    s2 = font.render("Press up to choose character!",1,GREEN)
+    s1 = font2.render("Choose Your Player!",1,TIEL)
+    s2 = font1.render("Press up to lock in character!",1,TIEL)
     screen.blit(s1,[(WIDTH//2) - ((s1.get_width())//2),100])
     screen.blit(s2,[(WIDTH//2) - ((s2.get_width())//2),500])
     
@@ -177,19 +185,16 @@ def draw_arrow(x,y,player):
         pygame.draw.rect(screen, GREEN, [x,y,5,15])
     
 def end_screen(health1):
-    font = pygame.font.Font(None, 45)
-    
     winner = "Player1"
     if health1[0] <= 0:
         winner = "Player2"
     
-    s2 = font.render(winner + " wins!",1,GREEN)
+    s2 = font2.render(winner + " wins!",1,TIEL)
     screen.blit(s2,[(WIDTH//2) - ((s2.get_width())//2),250])
-    s1 = font.render("Press 'start' to play again",1,GREEN)
+    s1 = font2.render("Press 'start' to play again",1,TIEL)
     screen.blit(s1,[(WIDTH//2) - ((s1.get_width())//2),300])
         
-def shoot(player,direc,bullets,rt_x,rt_y,ammo):
-    if len(bullets) < ammo: 
+def shoot(player,direc,bullets,rt_x,rt_y):
         x = player[0]
         y = player[1]
 
@@ -198,28 +203,22 @@ def shoot(player,direc,bullets,rt_x,rt_y,ammo):
             shape = [15,5]
             y += 17
             bullets.append( [x, y, shape[0], shape[1], b_vel] )
-            direc = 4
         elif rt_x < -sensitivity:
             b_vel = [-24,0]
             shape = [15,5]
             y += 17
             bullets.append( [x, y, shape[0], shape[1], b_vel] )
-            direc = 2
         elif rt_y > sensitivity:
             b_vel = [0,24]
             shape = [5,15]
             x += 17
             bullets.append( [x, y, shape[0], shape[1], b_vel] )
-            direc = 3
         elif rt_y < -sensitivity:
             b_vel = [0,-24]
             x += 17
             shape = [5,15]
             bullets.append( [x, y, shape[0], shape[1], b_vel] )
-            direc = 1
-                     
-        
-
+                            
 def draw_bullet(x,y,l,w):
     pygame.draw.rect(screen, GREEN, [x,y,l,w])
 
@@ -369,39 +368,44 @@ while not done:
     '''controls while game is playing'''        
     if stage == PLAYING:
         #shoots bullet
-        if rt_x1 != 0 or rt_y1 != 0:
-            shoot(player1,dir1,bullets1,rt_x1,rt_y1,ammo1)
-        if rt_x2 != 0 or rt_y2 != 0:
-            shoot(player2,dir2,bullets2,rt_x2,rt_y2,ammo2)
+        shoot(player1,dir1,bullets1,rt_x1,rt_y1)
+        shoot(player2,dir2,bullets2,rt_x2,rt_y2)
         
         #player 1 move
         if lt_x1 < -sensitivity :
             vel1[0] = -player_speed
+            dir1 = 2
         elif lt_x1 > sensitivity :
             vel1[0] = player_speed
+            dir1 = 4
         else:
             vel1[0] = 0
 
         if lt_y1 < -sensitivity :
             vel1[1] = -player_speed
+            dir1 = 1
         elif lt_y1 > sensitivity :
             vel1[1] = player_speed
+            dir1 = 3
         else:
             vel1[1] = 0
-        
-        
+         
         #player2 move
         if lt_x2 < -sensitivity :
             vel2[0] = -player_speed
+            dir2 = 2
         elif lt_x2 > sensitivity :
             vel2[0] = player_speed
+            dir2 = 4
         else:
             vel2[0] = 0
         
         if lt_y2 < -sensitivity :
             vel2[1] = -player_speed
+            dir2 = 1
         elif lt_y2 > sensitivity :
             vel2[1] = player_speed
+            dir2 = 3
         else:
             vel2[1] = 0
         
@@ -543,13 +547,11 @@ while not done:
     screen.blit(frame2, [player2[0],player2[1]])
 
     #display score
-    font = pygame.font.Font(None, 25)
-    
-    s1 = font.render("Player1: ",1,GREEN)
-    screen.blit(s1,[20,8])
+    s1 = font0.render("Player1: ",1,TIEL)
+    screen.blit(s1,[10,8])
 
-    s2 = font.render("Player2: " ,1,GREEN)
-    screen.blit(s2,[480,8])
+    s2 = font0.render("Player2: " ,1,TIEL)
+    screen.blit(s2,[465,8])
 
     #dispalys health bars
     health_bar(100,health1,shield1)
@@ -612,6 +614,7 @@ while not done:
         
     '''ending stage'''
     if stage == END:
+        vel1,vel2 = [0,0],[0,0]
         end_screen(health1)
         if start1 or start2:
             setup(health1,health2,lockin1,lockin2,arrow_pos1,arrow_pos2)
