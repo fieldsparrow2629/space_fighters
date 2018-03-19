@@ -35,9 +35,10 @@ BLUE = (0,0,205)
 
 #sounds
 coin = pygame.mixer.Sound('sounds/coin.ogg')
-track = 'sounds/soundtrack.ogg'
-smooth = 'sounds/smooth.ogg'
+track = pygame.mixer.Sound('sounds/retro1.ogg')
 lazer = pygame.mixer.Sound('sounds/lazer2.ogg')
+explode = pygame.mixer.Sound('sounds/explode.ogg')
+click = pygame.mixer.Sound('sounds/click.ogg')
 
 #fonts
 font0 = font1 = pygame.font.Font("fonts/space_age.ttf",15)
@@ -50,6 +51,16 @@ space = pygame.image.load('pictures/space.png')
 black_space = pygame.image.load('pictures/black_space.jpg')
 potion = pygame.image.load('pictures/potion.png')
 shield = pygame.image.load('pictures/shield.png')
+explo1 = pygame.image.load('pictures/explo1.png')
+explo2 = pygame.image.load('pictures/explo2.png')
+explo3 = pygame.image.load('pictures/explo3.png')
+explo4 = pygame.image.load('pictures/explo4.png')
+explo5 = pygame.image.load('pictures/explo5.png')
+explo6 = pygame.image.load('pictures/explo6.png')
+explo7 = pygame.image.load('pictures/explo7.png')
+explo8 = pygame.image.load('pictures/explo8.png')
+
+ex_list = [explo1,explo2,explo2,explo3,explo4,explo5,explo6,explo7,explo8]
 
 ship_1 = pygame.image.load('pictures/craft1.png')
 ship_2 = pygame.transform.rotate(ship_1, 90)
@@ -73,10 +84,9 @@ icon1 = pygame.image.load('pictures/icon1.png')
 
 #player1
 player1 =  [200, 150,25,25]
-health1 = [5,5]
-shield1 = [3,3]   
+health1 = [1,5]
+shield1 = [1,3]   
 char1 = 1
-lockin1 = False
 arrow_pos1 = [250,320]
 invins1 = False
 timer1 = 90
@@ -88,10 +98,9 @@ p1_fired = False
 
 #player2
 player2 = [250, 150, 25, 25]
-health2 = [5,5]
-shield2 = [3,3]
+health2 = [1,5]
+shield2 = [1,3]
 char2 = 1
-lockin2 = False
 arrow_pos2 = [265,320]
 invins2 = False
 timer2 = 90
@@ -102,7 +111,7 @@ fire_rate2 = 1
 p2_fired = False
 
 player_speed = 5
-sensitivity = .3
+sensitivity = .4
 # make walls
 wall1 =  [0, 0, 25, 600]
 wall2 =  [0, 0, 800, 25]
@@ -174,9 +183,30 @@ def move_arrow(lt_x,lockin,arrow_pos):
         if lt_x > 0 and not lockin:
             if arrow_pos[0] < 270:
                 arrow_pos[0] += 300
+                click.play()
         if lt_x < 0 and not lockin:
             if arrow_pos[0] > 270:
                 arrow_pos[0] -= 300
+                click.play()
+
+def move_player(lt_x,lt_y,vel,direc):
+    if lt_x < -sensitivity :
+        vel[0] = -player_speed
+        direc = 2
+    elif lt_x > sensitivity :
+        vel[0] = player_speed
+        direc = 4
+    else:
+        vel[0] = 0
+
+    if lt_y < -sensitivity :
+         vel[1] = -player_speed
+         direc = 1
+    elif lt_y > sensitivity :
+        vel[1] = player_speed
+        direc = 3
+    else:
+        vel[1] = 0
             
 def draw_arrow(x,y,player):
     if player == 1:
@@ -203,16 +233,19 @@ def shoot(player,direc,bullets,rt_x,rt_y):
             shape = [15,5]
             y += 17
             bullets.append( [x, y, shape[0], shape[1], b_vel] )
+            
         elif rt_x < -sensitivity:
             b_vel = [-24,0]
             shape = [15,5]
             y += 17
             bullets.append( [x, y, shape[0], shape[1], b_vel] )
+            
         elif rt_y > sensitivity:
             b_vel = [0,24]
             shape = [5,15]
             x += 17
             bullets.append( [x, y, shape[0], shape[1], b_vel] )
+            
         elif rt_y < -sensitivity:
             b_vel = [0,-24]
             x += 17
@@ -228,8 +261,7 @@ def get_frame_list(char):
     if char == 2:
         return frames2
 
-def get_frame(direc,frames):
-    
+def get_frame(direc,frames,health):
     if direc == 1:
         frame = frames[0]
     if direc == 2:
@@ -269,6 +301,7 @@ def collect_shield(shield_list, shield):
         if shield[0] != shield[1]:
             shields.remove(collect)
             shield[0] = shield[1]
+            coin.play()
             
 def move_bullets(bullets):
     for bullet in bullets:
@@ -315,24 +348,28 @@ def heal(health):
     if health[0] > health[1]:
         health[0] = health[1]
 
-def setup(health1,health2,lockin1,lockin2,arrowpos1,arrowpos2):
-    global stage,tick
+def setup(health1,health2):
+    global stage,tick,arrow_pos1,arrow_pos2,lockin1,lockin2
     stage = CHAR_SELECT
     lockin1,lockin2 = False,False
     tick = 0
 
-    arrow_pos1[1],arrow_pos2[1] = 320,320
-    health1[0] = health1[1]
-    health2[0] = health2[1]
+    arrow_pos1,arrow_pos2 = [250,320],[265,320]
+    health1[0] = 1
+    health2[0] = 1
 
-    shield1[0] = shield1[1]
-    shield2[0] = shield2[1]
+    shield1[0] = 1
+    shield2[0] = 1
 
     player1[0],player1[1] = 50,50
     player2[0],player2[1] = 675,200
 
     vel1[0],vel1[1] = 0,0
     vel2[0],vel2[1] = 0,0
+    
+    track.set_volume(0.1)
+
+    
 
     
 CHAR_SELECT = 0
@@ -341,8 +378,8 @@ COUNT_DOWN = 2
 PLAYING = 3
 END = 4
 
-setup(health1,health2,lockin1,lockin2,arrow_pos1,arrow_pos2)
-play_song(track)
+setup(health1,health2)
+track.play(-1)
 
 while not done:
     # Event processing (React to key presses, mouse clicks, etc.)
@@ -367,6 +404,7 @@ while not done:
 
     '''controls while game is playing'''        
     if stage == PLAYING:
+        ticks = 0
         #shoots bullet
         shoot(player1,dir1,bullets1,rt_x1,rt_y1)
         shoot(player2,dir2,bullets2,rt_x2,rt_y2)
@@ -391,6 +429,7 @@ while not done:
             vel1[1] = 0
          
         #player2 move
+        '''
         if lt_x2 < -sensitivity :
             vel2[0] = -player_speed
             dir2 = 2
@@ -408,6 +447,8 @@ while not done:
             dir2 = 3
         else:
             vel2[1] = 0
+        '''
+        move_player(lt_x2,lt_y2,vel2,dir2)
         
     #move bullets
     move_bullets(bullets1)
@@ -417,8 +458,8 @@ while not done:
     frame_list1 = get_frame_list(char1)
     frame_list2 = get_frame_list(char2)
     
-    frame1 = get_frame(dir1,frame_list1)
-    frame2 = get_frame(dir2,frame_list2)
+    frame1 = get_frame(dir1,frame_list1,health1)
+    frame2 = get_frame(dir2,frame_list2,health2)
         
     #updates the dimension of hit box based off of frame
     player1[2] = frame1.get_width()
@@ -543,8 +584,10 @@ while not done:
         screen.blit(shield, [s[0],s[1]])
 
     #draw players
-    screen.blit(frame1, [player1[0],player1[1]])
-    screen.blit(frame2, [player2[0],player2[1]])
+    if health1[0] != 0:
+        screen.blit(frame1, [player1[0],player1[1]])
+    if health2[0] != 0:
+        screen.blit(frame2, [player2[0],player2[1]])
 
     #display score
     s1 = font0.render("Player1: ",1,TIEL)
@@ -557,8 +600,14 @@ while not done:
     health_bar(100,health1,shield1)
     health_bar(560,health2,shield2)
 
-    if health1[0] == 0 or health2[0] == 0:
-        stage = END
+    #checks if game ends
+    if stage == PLAYING:
+        if health1[0] == 0:
+            explode.play()
+            stage = END
+        if health2[0] == 0:
+            explode.play()
+            stage = END
         
     '''character selection screen'''
     if stage == CHAR_SELECT:
@@ -601,23 +650,42 @@ while not done:
            
         if sec <= 1:
             screen.blit(three,[WIDTH//2 - 100,200])
+            track.set_volume(0.2)
         elif sec > 1 and sec <= 2:
             screen.blit(two,[WIDTH//2 - 100,200])
+            track.set_volume(0.4)
         elif sec > 2 and sec <= 3:
             screen.blit(one,[WIDTH//2 - 100,200])
+            track.set_volume(0.6)
         elif sec > 3 and sec <= 4:
             screen.blit(fight,[WIDTH//2 - 200,200])
+            track.set_volume(0.8)
         elif sec > 4:
             stage = PLAYING
-
+            
         tick += 1
         
     '''ending stage'''
     if stage == END:
         vel1,vel2 = [0,0],[0,0]
+
+        #displays explosion
+        explo_pos = player1[:2]
+        if health2[0] == 0:
+            explo_pos = player2[:2]
+
+        ex_frame = ticks//5
+        if ex_frame > 8:
+            ex_frame = 8
+        if ex_frame < 8:
+            screen.blit(ex_list[ex_frame],explo_pos)
+
+        ticks += 1
+        
         end_screen(health1)
         if start1 or start2:
-            setup(health1,health2,lockin1,lockin2,arrow_pos1,arrow_pos2)
+            setup(health1,health2)
+        
     
     # Update screen (Actually draw the picture in the window.)
     pygame.display.flip()
