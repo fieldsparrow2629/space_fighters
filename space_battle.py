@@ -84,12 +84,13 @@ icon1 = pygame.image.load('pictures/icon1.png')
 
 #player1
 player1 =  [200, 150,25,25]
-health1 = [1,5]
-shield1 = [1,3]   
+health1 = [5,5]
+shield1 = [3,3]   
 char1 = 1
 arrow_pos1 = [250,320]
 invins1 = False
 timer1 = 90
+cooldown1 = [25,25]
 vel1 = [0, 0]
 dir1 = 1
 bullets1 = []
@@ -98,12 +99,13 @@ p1_fired = False
 
 #player2
 player2 = [250, 150, 25, 25]
-health2 = [1,5]
-shield2 = [1,3]
+health2 = [5,5]
+shield2 = [3,3]
 char2 = 1
 arrow_pos2 = [265,320]
 invins2 = False
 timer2 = 90
+cooldown2 = [25,25]
 vel2 = [0, 0]
 dir2 = 1
 bullets2 = []
@@ -160,8 +162,16 @@ def char_selection_screen():
     
     s1 = font2.render("Choose Your Player!",1,TIEL)
     s2 = font1.render("Press up to lock in character!",1,TIEL)
+    s3 = font0.render("Shield: 5",1,TIEL)
+    s4 = font0.render("Attack Speed: slow",1,TIEL)
+    s5 = font0.render("Shield: 1",1,TIEL)
+    s6 = font0.render("Attack Speed: fast",1,TIEL)
     screen.blit(s1,[(WIDTH//2) - ((s1.get_width())//2),100])
     screen.blit(s2,[(WIDTH//2) - ((s2.get_width())//2),500])
+    screen.blit(s3,[200,150])
+    screen.blit(s4,[150,165])
+    screen.blit(s5,[500,150])
+    screen.blit(s6,[450,165])
     
     ship_sprite1  = pygame.transform.scale2x(ship_1)
     ship_sprite2 = pygame.transform.scale2x(craft_1)
@@ -233,19 +243,19 @@ def shoot(player,direc,bullets,rt_x,rt_y):
             shape = [15,5]
             y += 17
             bullets.append( [x, y, shape[0], shape[1], b_vel] )
-            
+                
         elif rt_x < -sensitivity:
             b_vel = [-24,0]
             shape = [15,5]
             y += 17
             bullets.append( [x, y, shape[0], shape[1], b_vel] )
-            
+                
         elif rt_y > sensitivity:
             b_vel = [0,24]
             shape = [5,15]
             x += 17
             bullets.append( [x, y, shape[0], shape[1], b_vel] )
-            
+                
         elif rt_y < -sensitivity:
             b_vel = [0,-24]
             x += 17
@@ -260,6 +270,16 @@ def get_frame_list(char):
         return frames1
     if char == 2:
         return frames2
+
+def get_stats(char,shield,cooldown):
+    if char == 1:
+        shield[1] = 5
+        cooldown[1] = 25
+    if char == 2:
+        shield[1] = 1
+        cooldown[1] = 10
+    shield[0] = shield[1]
+    cooldown[0] = cooldown[1]
 
 def get_frame(direc,frames,health):
     if direc == 1:
@@ -319,8 +339,8 @@ def draw_bullets(bullets):
     for b in bullets:
         draw_bullet(b[0],b[1],b[2],b[3])
         
-        if b[0] < -10 or b[0] > 800 \
-           or b[1] < -10 or b[1] > 600:
+        if b[0] < -10 or b[0] > WIDTH \
+           or b[1] < -10 or b[1] > HEIGHT:
             bullets.remove(b)
 
 def health_bar(x,health,shield):
@@ -354,13 +374,22 @@ def setup(health1,health2):
     lockin1,lockin2 = False,False
     tick = 0
 
+    #reset potions and shields
+    pots = [pot1, pot2, pot3]
+    shields = [s1,s2]
+
+    #reset arrow pos
     arrow_pos1,arrow_pos2 = [250,320],[265,320]
-    health1[0] = 1
-    health2[0] = 1
 
-    shield1[0] = 1
-    shield2[0] = 1
+    #reset health
+    health1[0] = health1[1]
+    health2[0] = health2[1]
 
+    #reset shield
+    shield1[0] = shield1[1]
+    shield2[0] = shield2[1]
+
+    #spawn point
     player1[0],player1[1] = 50,50
     player2[0],player2[1] = 675,200
 
@@ -405,9 +434,23 @@ while not done:
     '''controls while game is playing'''        
     if stage == PLAYING:
         ticks = 0
+        
         #shoots bullet
-        shoot(player1,dir1,bullets1,rt_x1,rt_y1)
-        shoot(player2,dir2,bullets2,rt_x2,rt_y2)
+        if cooldown1[0] < cooldown1[1]:
+            cooldown1[0] += 1
+        else:
+            shoot(player1,dir1,bullets1,rt_x1,rt_y1)
+            cooldown1[0] = 0
+
+            
+        if cooldown2[0] < cooldown2[1]:
+            cooldown2[0] += 1
+        else:
+            shoot(player2,dir2,bullets2,rt_x2,rt_y2)
+            cooldown2[0] = 0
+        
+        
+
         
         #player 1 move
         if lt_x1 < -sensitivity :
@@ -429,7 +472,6 @@ while not done:
             vel1[1] = 0
          
         #player2 move
-        '''
         if lt_x2 < -sensitivity :
             vel2[0] = -player_speed
             dir2 = 2
@@ -447,8 +489,6 @@ while not done:
             dir2 = 3
         else:
             vel2[1] = 0
-        '''
-        move_player(lt_x2,lt_y2,vel2,dir2)
         
     #move bullets
     move_bullets(bullets1)
@@ -634,8 +674,10 @@ while not done:
             
         char1 = char_lockin(arrow_pos1)
         char2 = char_lockin(arrow_pos2)
-                
+           
         if lockin1 and lockin2:
+            get_stats(char1,shield1,cooldown1)
+            get_stats(char2,shield2,cooldown2)
             stage = START
             
     '''intro stage'''
