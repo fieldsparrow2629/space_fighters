@@ -131,7 +131,7 @@ walls = [wall1,wall2, wall3,wall4,wall5,wall6,wall7,wall8,wall9,wall10]
 pot1 = [300, 475,25,25]
 pot2 = [400, 200,25,25]
 pot3 = [100, 150,25,25]
-pot_pos = [pot1, pot2, pot3]
+pots = [pot1, pot2, pot3]
 
 #make shields
 s1 = [450,400,40,40]
@@ -361,14 +361,16 @@ def heal(health):
     if health[0] > health[1]:
         health[0] = health[1]
 
-def setup(health1,health2,pot_pos,shields):
-    global stage,countdown_ticks,explosion_ticks,arrow_pos1,arrow_pos2,lockin1,lockin2,asteroids,pots
+def setup(health1,health2,pots,shields):
+    global stage,countdown_ticks,explosion_ticks,arrow_pos1,arrow_pos2,lockin1,lockin2,asteroids
     stage = CHAR_SELECT
     lockin1,lockin2 = False,False
     countdown_ticks = 0
     explosion_ticks = 0
 
+    #makes new asteroid list
     asteroids = make_asteroids()
+    
     #reset arrow pos
     arrow_pos1,arrow_pos2 = [250,320],[265,320]
 
@@ -376,7 +378,6 @@ def setup(health1,health2,pot_pos,shields):
     health1[0] = 1
     health2[0] = 1
     
-    pots = pot_pos
     #reset shield
     shield1[0] =  0
     shield2[0] =  0 
@@ -384,7 +385,6 @@ def setup(health1,health2,pot_pos,shields):
     #spawn point
     player1[0],player1[1] = 50,50
     player2[0],player2[1] = 675,200
-
     vel1[0],vel1[1] = 0,0
     vel2[0],vel2[1] = 0,0
     
@@ -397,7 +397,7 @@ COUNT_DOWN = 2
 PLAYING = 3
 END = 4
 
-setup(health1,health2,pot_pos,shields)
+setup(health1,health2,pots,shields)
 track.play(-1)
 
 while not done:
@@ -750,7 +750,7 @@ while not done:
         
         end_screen(health1)
         if start1 or start2:
-            setup(health1,health2,pot_pos,shields)
+            setup(health1,health2,pots,shields)
         
     
     # Update screen (Actually draw the picture in the window.)
