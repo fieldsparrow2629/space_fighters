@@ -2,6 +2,7 @@
 import pygame
 import intersects
 import xbox360_controller
+import random
 
 
 # Initialize game engine
@@ -11,7 +12,7 @@ pygame.init()
 WIDTH = 800
 HEIGHT = 600
 SIZE = (WIDTH, HEIGHT)
-TITLE = "Maze"
+TITLE = "Space Fighters"
 screen = pygame.display.set_mode(SIZE)
 pygame.display.set_caption(TITLE)
 
@@ -82,6 +83,8 @@ count = [one,two,three]
 
 icon1 = pygame.image.load('pictures/icon1.png')
 
+asteroid = pygame.image.load('pictures/asteroid.png')
+
 #player1
 player1 =  [200, 150,25,25]
 health1 = [5,5]
@@ -94,8 +97,6 @@ cooldown1 = [25,25]
 vel1 = [0, 0]
 dir1 = 1
 bullets1 = []
-fire_rate1 = 1
-p1_fired = False
 
 #player2
 player2 = [250, 150, 25, 25]
@@ -109,8 +110,6 @@ cooldown2 = [25,25]
 vel2 = [0, 0]
 dir2 = 1
 bullets2 = []
-fire_rate2 = 1
-p2_fired = False
 
 player_speed = 5
 sensitivity = .4
@@ -127,18 +126,16 @@ wall9 = [150, 100, 400, 25]
 wall10 = [150,100,25,400]
 
 walls = [wall1,wall2, wall3,wall4,wall5,wall6,wall7,wall8,wall9,wall10]
-
+    
 # Make potions
 pot1 = [300, 475,25,25]
 pot2 = [400, 200,25,25]
 pot3 = [100, 150,25,25]
-
-pots = [pot1, pot2, pot3]
+pot_pos = [pot1, pot2, pot3]
 
 #make shields
 s1 = [450,400,40,40]
 s2 = [650,400,40,40]
-
 shields = [s1,s2]
 
 # Game loop
@@ -184,40 +181,17 @@ def char_lockin(arrow_pos):
         return 1
     if arrow_pos[0] > 250:
         return 2
-
-def play_song(song):
-    pygame.mixer.music.load(song)
-    pygame.mixer.music.play(-1)
-   
+ 
 def move_arrow(lt_x,lockin,arrow_pos):
-        if lt_x > 0 and not lockin:
+        if lt_x > sensitivity and not lockin:
             if arrow_pos[0] < 270:
                 arrow_pos[0] += 300
                 click.play()
-        if lt_x < 0 and not lockin:
+        if lt_x < -sensitivity and not lockin:
             if arrow_pos[0] > 270:
                 arrow_pos[0] -= 300
                 click.play()
-
-def move_player(lt_x,lt_y,vel,direc):
-    if lt_x < -sensitivity :
-        vel[0] = -player_speed
-        direc = 2
-    elif lt_x > sensitivity :
-        vel[0] = player_speed
-        direc = 4
-    else:
-        vel[0] = 0
-
-    if lt_y < -sensitivity :
-         vel[1] = -player_speed
-         direc = 1
-    elif lt_y > sensitivity :
-        vel[1] = player_speed
-        direc = 3
-    else:
-        vel[1] = 0
-            
+      
 def draw_arrow(x,y,player):
     if player == 1:
         pygame.draw.rect(screen, RED, [x,y,5,15])
@@ -238,32 +212,44 @@ def shoot(player,direc,bullets,rt_x,rt_y):
         x = player[0]
         y = player[1]
 
-        if rt_x > sensitivity:
+        if rt_x > .2:
             b_vel = [24,0]
             shape = [15,5]
             y += 17
             bullets.append( [x, y, shape[0], shape[1], b_vel] )
+            lazer.play()
                 
-        elif rt_x < -sensitivity:
+        elif rt_x < -.2:
             b_vel = [-24,0]
             shape = [15,5]
             y += 17
             bullets.append( [x, y, shape[0], shape[1], b_vel] )
-                
-        elif rt_y > sensitivity:
+            lazer.play()    
+        elif rt_y > .2:
             b_vel = [0,24]
             shape = [5,15]
             x += 17
             bullets.append( [x, y, shape[0], shape[1], b_vel] )
-                
-        elif rt_y < -sensitivity:
+            lazer.play()    
+        elif rt_y < -.2:
             b_vel = [0,-24]
             x += 17
             shape = [5,15]
             bullets.append( [x, y, shape[0], shape[1], b_vel] )
-                            
+            lazer.play()
+            
 def draw_bullet(x,y,l,w):
     pygame.draw.rect(screen, GREEN, [x,y,l,w])
+
+
+def make_asteroids():
+    rocks = []
+    for i in range(10):
+        x = random.randrange(400,1200)
+        y = random.randrange(-600,-20)
+        a = [x,y,30,23]
+        rocks.append(a)
+    return rocks
 
 def get_frame_list(char):
     if char == 1:
@@ -282,8 +268,7 @@ def get_stats(char,shield,cooldown):
     cooldown[0] = cooldown[1]
 
 def get_frame(direc,frames,health):
-    if direc == 1:
-        frame = frames[0]
+    frame = frames[0]
     if direc == 2:
         frame = frames[1]
     elif direc == 3:
@@ -362,32 +347,39 @@ def health_bar(x,health,shield):
     pygame.draw.rect(screen, BLACK, [x,8,160,2])
     pygame.draw.rect(screen, BLACK, [x - 1,8,3,15])
 
+def get_damage(dmglist,invins,shield,health):
+    for s in dmglist:
+        if not invins:
+            if shield[0] > 0:
+                shield[0] -= 1
+            else:
+                health[0] -= 1
+            invins = True
     
 def heal(health):
     health[0] += 1
     if health[0] > health[1]:
         health[0] = health[1]
 
-def setup(health1,health2):
-    global stage,tick,arrow_pos1,arrow_pos2,lockin1,lockin2
+def setup(health1,health2,pot_pos,shields):
+    global stage,countdown_ticks,explosion_ticks,arrow_pos1,arrow_pos2,lockin1,lockin2,asteroids,pots
     stage = CHAR_SELECT
     lockin1,lockin2 = False,False
-    tick = 0
+    countdown_ticks = 0
+    explosion_ticks = 0
 
-    #reset potions and shields
-    pots = [pot1, pot2, pot3]
-    shields = [s1,s2]
-
+    asteroids = make_asteroids()
     #reset arrow pos
     arrow_pos1,arrow_pos2 = [250,320],[265,320]
 
     #reset health
-    health1[0] = health1[1]
-    health2[0] = health2[1]
-
+    health1[0] = 1
+    health2[0] = 1
+    
+    pots = pot_pos
     #reset shield
-    shield1[0] = shield1[1]
-    shield2[0] = shield2[1]
+    shield1[0] =  0
+    shield2[0] =  0 
 
     #spawn point
     player1[0],player1[1] = 50,50
@@ -398,16 +390,14 @@ def setup(health1,health2):
     
     track.set_volume(0.1)
 
-    
-
-    
+       
 CHAR_SELECT = 0
 START = 1
 COUNT_DOWN = 2
 PLAYING = 3
 END = 4
 
-setup(health1,health2)
+setup(health1,health2,pot_pos,shields)
 track.play(-1)
 
 while not done:
@@ -433,7 +423,6 @@ while not done:
 
     '''controls while game is playing'''        
     if stage == PLAYING:
-        ticks = 0
         
         #shoots bullet
         if cooldown1[0] < cooldown1[1]:
@@ -441,16 +430,12 @@ while not done:
         else:
             shoot(player1,dir1,bullets1,rt_x1,rt_y1)
             cooldown1[0] = 0
-
             
         if cooldown2[0] < cooldown2[1]:
             cooldown2[0] += 1
         else:
             shoot(player2,dir2,bullets2,rt_x2,rt_y2)
             cooldown2[0] = 0
-        
-        
-
         
         #player 1 move
         if lt_x1 < -sensitivity :
@@ -555,7 +540,8 @@ while not done:
     #hit list of the players
     pot_list1 = [p for p in pots if intersects.rect_rect(player1, p)]
     pot_list2 = [p for p in pots if intersects.rect_rect(player2, p)]
-    
+
+    #heals player per potion
     collect_pot(pot_list1,health1)
     collect_pot(pot_list2,health2)
         
@@ -563,47 +549,86 @@ while not done:
     strikes1 = [s for s in bullets2 if intersects.rect_rect(player1,s)]
     strikes2 = [s for s in bullets1 if intersects.rect_rect(player2,s)]
 
+    crash1 = [a for a in asteroids if intersects.rect_rect(player1,a)]
+    crash2 = [a for a in asteroids if intersects.rect_rect(player2,a)]
+
     #hit list of the shields
     shield_list1 = [s for s in shields if intersects.rect_rect(player1, s)]
     shield_list2 = [s for s in shields if intersects.rect_rect(player2, s)]
 
+    #replenishes players shield per shield
     collect_shield(shield_list1,shield1)
     collect_shield(shield_list2,shield2)
 
 
-    #checks if player is invinsible and reduces invinsibility timer
+    #checks if player is invincible and reduces invincibility timer
     if invins1:
         timer1 -= 1
-        
         if timer1 == 0:
             invins1 = False
             timer1 = 90
 
     if invins2:
         timer2 -= 1
-        
         if timer2 == 0:
             invins2 = False
             timer2 = 90
 
-    #damages player if collides with bullet
-    for s in strikes1:
-        if not invins1:
-            if shield1[0] > 0:
-                shield1[0] -= 1
-            else:
-                health1[0] -= 1
-            invins1 = True
-    
-    for s in strikes2:
-        if not invins2:
-            if shield2[0] > 0:
-                shield2[0] -= 1
-            else:
-                health2[0] -= 1
-            invins2 = True
+    '''player damaged from collision'''
+    if stage == PLAYING:
+        for s in strikes1:
+            if not invins1:
+                if shield1[0] > 0:
+                    shield1[0] -= 1
+                else:
+                    health1[0] -= 1
+                invins1 = True
+                
+        for s in crash1:
+            if not invins1:
+                if shield1[0] > 0:
+                    shield1[0] -= 1
+                else:
+                    health1[0] -= 1
+                invins1 = True
+                
+        
+        for s in strikes2:
+            if not invins2:
+                if shield2[0] > 0:
+                    shield2[0] -= 1
+                else:
+                    health2[0] -= 1
+                invins2 = True
+                
+        for s in crash2:
+            if not invins2:
+                if shield2[0] > 0:
+                    shield2[0] -= 1
+                else:
+                    health2[0] -= 1
+                invins2 = True
+                
+        #move asteroids
+        for a in asteroids:
+            a[0] -= 1
+            a[1] += 1
 
-    # Drawing code (Describe the picture. It isn't actually drawn yet.)
+            if a[0] < -75 or a[1] > 630:
+                a[0] = random.randrange(400, 1200)
+                a[1] = random.randrange(-150,-50)
+                
+        #checks if game ends
+        if health1[0] == 0:
+            explode.play()
+            stage = END
+        if health2[0] == 0:
+            explode.play()
+            stage = END
+
+        
+    
+    '''drawing code'''
     screen.fill(BLACK)
     screen.blit(space,[0,0])
 
@@ -629,7 +654,11 @@ while not done:
     if health2[0] != 0:
         screen.blit(frame2, [player2[0],player2[1]])
 
-    #display score
+    #draw asteroids
+    for a in asteroids:
+        screen.blit(asteroid,a[:2])
+
+    #display player names
     s1 = font0.render("Player1: ",1,TIEL)
     screen.blit(s1,[10,8])
 
@@ -640,15 +669,7 @@ while not done:
     health_bar(100,health1,shield1)
     health_bar(560,health2,shield2)
 
-    #checks if game ends
-    if stage == PLAYING:
-        if health1[0] == 0:
-            explode.play()
-            stage = END
-        if health2[0] == 0:
-            explode.play()
-            stage = END
-        
+
     '''character selection screen'''
     if stage == CHAR_SELECT:
         char_selection_screen()
@@ -671,10 +692,12 @@ while not done:
         if lt_y2 > sensitivity :
             arrow_pos2[1] = 320
             lockin2 = False
-            
+
+        #locks in character based on which is slected
         char1 = char_lockin(arrow_pos1)
         char2 = char_lockin(arrow_pos2)
-           
+
+        #if both players lockin, get the stats for each ship and start game
         if lockin1 and lockin2:
             get_stats(char1,shield1,cooldown1)
             get_stats(char2,shield2,cooldown2)
@@ -688,7 +711,7 @@ while not done:
 
     '''count down stage'''
     if stage == COUNT_DOWN:
-        sec = tick/60
+        sec = countdown_ticks/60
            
         if sec <= 1:
             screen.blit(three,[WIDTH//2 - 100,200])
@@ -705,7 +728,7 @@ while not done:
         elif sec > 4:
             stage = PLAYING
             
-        tick += 1
+        countdown_ticks += 1
         
     '''ending stage'''
     if stage == END:
@@ -716,17 +739,18 @@ while not done:
         if health2[0] == 0:
             explo_pos = player2[:2]
 
-        ex_frame = ticks//5
+        ex_frame = explosion_ticks//5
         if ex_frame > 8:
             ex_frame = 8
         if ex_frame < 8:
             screen.blit(ex_list[ex_frame],explo_pos)
 
-        ticks += 1
+        #adds to ticks
+        explosion_ticks += 1
         
         end_screen(health1)
         if start1 or start2:
-            setup(health1,health2)
+            setup(health1,health2,pot_pos,shields)
         
     
     # Update screen (Actually draw the picture in the window.)
