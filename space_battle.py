@@ -375,12 +375,12 @@ def setup(health1,health2,pots,shields):
     arrow_pos1,arrow_pos2 = [250,320],[265,320]
 
     #reset health
-    health1[0] = 1
-    health2[0] = 1
+    health1[0] = health1[1]
+    health2[0] = health2[1]
     
     #reset shield
-    shield1[0] =  0
-    shield2[0] =  0 
+    shield1[0] =  shield1[1]
+    shield2[0] =  shield2[1]
 
     #spawn point
     player1[0],player1[1] = 50,50
